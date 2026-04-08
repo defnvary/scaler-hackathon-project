@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: openenv
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: sqlenv
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      
+  api:
+    build:
+      context: ./sql_opt_env
+      dockerfile: server/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=openenv
+      - DB_PASSWORD=password
+      - DB_NAME=sqlenv
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
