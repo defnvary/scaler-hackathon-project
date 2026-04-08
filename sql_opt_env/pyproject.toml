@@ -27,6 +27,7 @@ dependencies = [
     # "openspiel>=1.0.0",
     # "smolagents>=1.22.0,<2",
     "psycopg2-binary>=2.9.11",
+    "python-dotenv>=1.2.2",
     "sqlglot>=30.3.0",
 ]
 

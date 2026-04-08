@@ -1605,6 +1605,7 @@ source = { editable = "." }
 dependencies = [
     { name = "openenv-core", extra = ["core"] },
     { name = "psycopg2-binary" },
+    { name = "python-dotenv" },
     { name = "sqlglot" },
 ]
 
@@ -1620,6 +1621,7 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "sqlglot", specifier = ">=30.3.0" },
 ]
 provides-extras = ["dev"]
