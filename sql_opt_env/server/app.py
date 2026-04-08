@@ -38,7 +38,7 @@ except Exception as e:  # pragma: no cover
 try:
     from ..models import SqlOptAction, SqlOptObservation
     from .sql_opt_env_environment import SqlOptEnvironment
-except ImportError, ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     from models import SqlOptAction, SqlOptObservation
     from server.sql_opt_env_environment import SqlOptEnvironment
 
