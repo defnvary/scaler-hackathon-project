@@ -1,47 +1,58 @@
 # SQL Query Optimizer OpenEnv
 
-An RL environment built for the Meta × PyTorch OpenEnv Hackathon 2026. 
-The agent's task is to receive a slow SQL query and schema, and rewrite it into an optimized version.
+## Environment Description and Motivation
+The **SQL Query Optimizer** OpenEnv is an RL environment built for the Meta × PyTorch OpenEnv Hackathon 2026. The agent's task is to receive a slow SQL query and schema, and rewrite it into an optimized version.
 
-## 🏆 Prerequisites Fulfilled
-- **Real-World Task**: Query optimization translates directly to lower cloud compute bills.
-- **OpenEnv Spec**: Full schema compliance, typed `SqlOptAction`/`SqlOptObservation` in `models.py`, valid `openenv.yaml`.
-- **3 Tasks (Agent Graders)**: Curated query bank (`query_bank.py`) featuring `easy` (SELECT * wide tables), `medium` (Implicit joins & DISTINCT), and `hard` (N+1 correlated subqueries).
-- **Meaningful Reward Function**: Returns scores mapped strictly from `0.0` to `1.0`. Provides partial progress:
-  - Valid syntax (+0.2)
-  - Executable without errors (+0.2)
-  - Semantically correct results (+0.3)
-  - Latency reduction bonus (+0.3 scaled)
-- **Baseline Inference Script**: Run `python baseline_agent.py` to test a reproducible heuristic agent achieving ~0.7+ rewards.
-- **Hugging Face Spaces**: Ready to deploy with `openenv push` and the included Dockerfile.
+**Motivation (Real-World Task Simulation):**
+Query optimization translates directly to lower cloud compute bills and improved software performance. Identifying implicit cross joins, redundant scans, and N+1 anti-patterns in production schemas is a task DBAs and backend engineers perform daily. Rather than a toy game, this environment evaluates an agent’s capability to parse, reason, and rewrite actual `PostgreSQL` dialects while actively benchmarking the result set and latency.
 
-## 🛠️ Action & Observation Spaces
+## Action and Observation Space Definitions
 
 ### Observation Space (`SqlOptObservation`)
-- `original_sql` (str): The slow query.
-- `schema_ddl` (str): Contextual CREATE TABLE structures.
-- `current_latency_ms` (float): Baseline execution time inside Postgres.
+- `original_sql` (str): The slow query to be optimized.
+- `schema_ddl` (str): Contextual CREATE TABLE statements and indices.
+- `current_latency_ms` (float): Baseline execution time measured inside the Sandbox Postgres DB.
 - `explain_plan` (str): JSON output of EXPLAIN ANALYZE for the query.
 - `episode_step` (int): Current step in the episode.
 
 ### Action Space (`SqlOptAction`)
-- `rewritten_sql` (str): The agent's optimized string.
+- `rewritten_sql` (str): The agent's optimized query string.
 
-## 🚀 Setup & Execution
+## Task Descriptions and Expected Difficulty
+The environment uses a `query_bank.py` to randomly serve tasks across three categories:
+1. **Easy**: (e.g., `SELECT *` on wide tables). The agent must learn to select only the necessary columns based on a given context.
+2. **Medium**: (e.g., Implicit Cross Joins & Redundant `DISTINCT`). The agent must recognize legacy join syntax, convert it to explicit `INNER JOIN` logic, and remove unnecessary aggregations.
+3. **Hard**: (e.g., Correlated Subqueries / N+1 patterns). The agent must flatten `SELECT (SELECT COUNT(...) FROM ... WHERE ...)` logic into a grouped `LEFT JOIN` to prevent row-by-row execution.
 
-### 1. Run the Environment (Docker Rootless)
-We use `docker compose` to launch a PostgreSQL sandbox and the FastAPI OpenEnv server securely.
+**Agent Graders & Meaningful Reward Function:**
+The reward strictly outputs between `0.0` and `1.0` (with partial progress):
+- **+0.2** for valid `sqlglot` Postgres syntax.
+- **+0.2** if the query is executable on the Sandbox Postgres instance (no runtime errors).
+- **+0.3** if the result set is semantically identical to the baseline (MD5 hashing).
+- **+0.3** (scaled) based on `(baseline_ms - new_ms) / baseline_ms`.
+
+## Setup and Usage Instructions
+
+### 1. Run the Environment (Containerized execution)
+The environment contains a fully working `Dockerfile` and `docker-compose.yml` to launch a PostgreSQL sandbox alongside the FastAPI OpenEnv server securely.
 
 ```bash
+# Build and run the local instances
 docker compose build --no-cache api
 docker compose up -d
 ```
 
-### 2. Run the Baseline Agent
-Test the environment endpoints using the included Python baseline inference script:
+### 2. Run the Baseline Inference Script
+To produce reproducible baseline scores using the `OpenAI` client standard:
 
 ```bash
-uv run baseline_agent.py
+# Ensure dependencies are available (e.g., via uv sync)
+export API_BASE_URL="https://api.openai.com/v1"
+export MODEL_NAME="gpt-4o"
+export OPENAI_API_KEY="sk-..."
+
+# Run the strict stdout format inference script
+uv run inference.py
 ```
 
 ### 3. Deploy to Hugging Face Spaces
@@ -50,3 +61,6 @@ To push to your Hugging Face Space (requires `huggingface_hub` login):
 ```bash
 uv run openenv push --repo-id <your-hf-username>/sql-opt-env
 ```
+
+## Baseline Scores
+Running `inference.py` directly executes the environment logic against the query bank. Baseline runs yield a deterministic reproducible score ranging from **~0.400** to **0.700+** when testing the built-in heuristic/LLM mocks, demonstrating the partial reward signals and accuracy metrics functioning exactly as specified.
