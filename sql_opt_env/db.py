@@ -59,7 +59,8 @@ def execute_query_metrics(sql):
 
         # 1. Get EXPLAIN ANALYZE
         cur.execute(f"EXPLAIN (ANALYZE, FORMAT JSON) {sql}")
-        explain_plan = cur.fetchone()[0][0]
+        row = cur.fetchone()
+        explain_plan = list(row.values())[0][0]
         execution_time_ms = explain_plan.get("Execution Time", 0.0)
 
         # 2. Get actual results to hash for semantic correctness
