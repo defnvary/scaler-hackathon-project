@@ -25,3 +25,7 @@ class SqlOptObservation(Observation):
         default="", description="EXPLAIN ANALYZE JSON of original query"
     )
     episode_step: int = Field(default=0, description="Current step in the episode")
+    task_name: str = Field(
+        default="", description="Name of the current optimization task"
+    )
+    difficulty: str = Field(default="", description="Difficulty level of the task")

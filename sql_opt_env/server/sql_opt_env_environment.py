@@ -7,7 +7,7 @@ from openenv.core.env_server.types import State
 
 try:
     from ..models import SqlOptAction, SqlOptObservation
-except (ImportError, ModuleNotFoundError):
+except ImportError, ModuleNotFoundError:
     from models import SqlOptAction, SqlOptObservation
 
 from sql_opt_env.db import setup_db, execute_query_metrics
@@ -23,6 +23,8 @@ class SqlOptEnvironment(Environment):
         setup_db()
         self.current_original_sql = ""
         self.current_schema_ddl = ""
+        self.current_task_name = ""
+        self.current_difficulty = ""
         self.baseline_ms = 0.0
         self.baseline_hash = ""
         self.baseline_plan = "{}"
@@ -34,6 +36,14 @@ class SqlOptEnvironment(Environment):
         sql, schema, difficulty = query_bank.sample()
         self.current_original_sql = sql
         self.current_schema_ddl = schema
+        self.current_difficulty = difficulty
+
+        # Determine task name from query bank
+        self.current_task_name = "optimize_sql"
+        for diff in query_bank.queries:
+            for task in query_bank.queries[diff]:
+                if task["sql"].strip() == sql.strip():
+                    self.current_task_name = task.get("name", "optimize_sql")
 
         # Get baseline metrics
         ms, plan, res_hash, err = execute_query_metrics(sql)
@@ -49,6 +59,8 @@ class SqlOptEnvironment(Environment):
             episode_step=0,
             done=False,
             reward=0.0,
+            task_name=self.current_task_name,
+            difficulty=self.current_difficulty,
         )
 
     def step(self, action: SqlOptAction) -> SqlOptObservation:
@@ -104,6 +116,8 @@ class SqlOptEnvironment(Environment):
             episode_step=self._state.step_count,
             done=done,
             reward=reward,
+            task_name=self.current_task_name,
+            difficulty=self.current_difficulty,
         )
 
     @property
