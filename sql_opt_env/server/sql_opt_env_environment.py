@@ -7,7 +7,7 @@ from openenv.core.env_server.types import State
 
 try:
     from ..models import SqlOptAction, SqlOptObservation
-except ImportError, ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     from models import SqlOptAction, SqlOptObservation
 
 from sql_opt_env.db import setup_db, execute_query_metrics
