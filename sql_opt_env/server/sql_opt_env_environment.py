@@ -3,7 +3,8 @@ from uuid import uuid4
 import sqlglot
 
 from openenv.core.env_server.interfaces import Environment
-from openenv.core.env_server.types import State
+from openenv.core.env_server.types import State, EnvironmentMetadata
+from pydantic import Field
 
 try:
     from ..models import SqlOptAction, SqlOptObservation
@@ -28,6 +29,14 @@ class SqlOptEnvironment(Environment):
         self.baseline_ms = 0.0
         self.baseline_hash = ""
         self.baseline_plan = "{}"
+
+    def get_metadata(self) -> EnvironmentMetadata:
+        return EnvironmentMetadata(
+            name="sql_opt_env",
+            description="SQL Query Optimizer environment for RL training",
+            version="1.0.0",
+            author="Antigravity",
+        )
 
     def reset(self) -> SqlOptObservation:
         self._state = State(episode_id=str(uuid4()), step_count=0)

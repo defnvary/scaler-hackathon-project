@@ -6,26 +6,6 @@
 
 """
 FastAPI application for the Sql Opt Env Environment.
-
-This module creates an HTTP server that exposes the SqlOptEnvironment
-over HTTP and WebSocket endpoints, compatible with EnvClient.
-
-Endpoints:
-    - POST /reset: Reset the environment
-    - POST /step: Execute an action
-    - GET /state: Get current environment state
-    - GET /schema: Get action/observation schemas
-    - WS /ws: WebSocket endpoint for persistent sessions
-
-Usage:
-    # Development (with auto-reload):
-    uvicorn server.app:app --reload --host 0.0.0.0 --port 8000
-
-    # Production:
-    uvicorn server.app:app --host 0.0.0.0 --port 8000 --workers 4
-
-    # Or run directly:
-    python -m server.app
 """
 
 try:
@@ -49,27 +29,49 @@ app = create_app(
     SqlOptAction,
     SqlOptObservation,
     env_name="sql_opt_env",
-    max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
+    max_concurrent_envs=1,
 )
 
 
+@app.get("/tasks")
+async def list_tasks():
+    return {
+        "tasks": [
+            {
+                "id": "wide_table_scan",
+                "name": "Wide Table Scan Optimization",
+                "difficulty": "easy",
+                "description": "Optimize a SELECT * query on a wide table by selecting only necessary columns.",
+            },
+            {
+                "id": "redundant_distinct",
+                "name": "Redundant Distinct Removal",
+                "difficulty": "easy",
+                "description": "Remove an unnecessary DISTINCT clause on a primary key column.",
+            },
+            {
+                "id": "implicit_join",
+                "name": "Implicit Join Conversion",
+                "difficulty": "medium",
+                "description": "Convert legacy implicit cross-join syntax to explicit INNER JOIN.",
+            },
+            {
+                "id": "union_all_optimization",
+                "name": "Union to Union All",
+                "difficulty": "medium",
+                "description": "Optimize a UNION query to UNION ALL where results are guaranteed to be disjoint.",
+            },
+            {
+                "id": "n_plus_one_correlated",
+                "name": "N+1 Subquery Flattening",
+                "difficulty": "hard",
+                "description": "Flatten a correlated subquery in the SELECT clause into a JOIN + GROUP BY.",
+            },
+        ]
+    }
+
+
 def main(host: str = "0.0.0.0", port: int = 8000):
-    """
-    Entry point for direct execution via uv run or python -m.
-
-    This function enables running the server without Docker:
-        uv run --project . server
-        uv run --project . server --port 8001
-        python -m sql_opt_env.server.app
-
-    Args:
-        host: Host address to bind to (default: "0.0.0.0")
-        port: Port number to listen on (default: 8000)
-
-    For production deployments, consider using uvicorn directly with
-    multiple workers:
-        uvicorn sql_opt_env.server.app:app --workers 4
-    """
     import uvicorn
 
     uvicorn.run(app, host=host, port=port)
