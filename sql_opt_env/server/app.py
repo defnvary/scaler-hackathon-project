@@ -42,30 +42,35 @@ async def list_tasks():
                 "name": "Wide Table Scan Optimization",
                 "difficulty": "easy",
                 "description": "Optimize a SELECT * query on a wide table by selecting only necessary columns.",
+                "has_grader": True,
             },
             {
                 "id": "redundant_distinct",
                 "name": "Redundant Distinct Removal",
                 "difficulty": "easy",
                 "description": "Remove an unnecessary DISTINCT clause on a primary key column.",
+                "has_grader": True,
             },
             {
                 "id": "implicit_join",
                 "name": "Implicit Join Conversion",
                 "difficulty": "medium",
                 "description": "Convert legacy implicit cross-join syntax to explicit INNER JOIN.",
+                "has_grader": True,
             },
             {
                 "id": "union_all_optimization",
                 "name": "Union to Union All",
                 "difficulty": "medium",
                 "description": "Optimize a UNION query to UNION ALL where results are guaranteed to be disjoint.",
+                "has_grader": True,
             },
             {
                 "id": "n_plus_one_correlated",
                 "name": "N+1 Subquery Flattening",
                 "difficulty": "hard",
                 "description": "Flatten a correlated subquery in the SELECT clause into a JOIN + GROUP BY.",
+                "has_grader": True,
             },
         ]
     }
