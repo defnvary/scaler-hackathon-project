@@ -30,7 +30,7 @@ COPY . /app/env
 
 # For in-repo builds, openenv is already vendored in the build context
 # For standalone builds, openenv will be installed via pyproject.toml
-WORKDIR /app/env
+WORKDIR /app/env/sql_opt_env
 
 # Ensure uv is available (for local builds where base image lacks it)
 RUN if ! command -v uv >/dev/null 2>&1; then \
@@ -62,7 +62,7 @@ WORKDIR /app
 ENV UV_HTTP_TIMEOUT=120
 
 # Copy the virtual environment from builder
-COPY --from=builder /app/env/.venv /app/.venv
+COPY --from=builder /app/env/sql_opt_env/.venv /app/.venv
 
 # Copy the environment code
 COPY --from=builder /app/env /app/env
@@ -71,7 +71,7 @@ COPY --from=builder /app/env /app/env
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Set PYTHONPATH so imports work correctly
-ENV PYTHONPATH="/app/env:$PYTHONPATH"
+ENV PYTHONPATH="/app/env/sql_opt_env:/app/env:$PYTHONPATH"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
