@@ -1,3 +1,12 @@
+---
+title: SQL Opt Env
+emoji: 🗄️
+colorFrom: blue
+colorTo: red
+sdk: docker
+pinned: false
+---
+
 # SQL Query Optimizer OpenEnv
 
 ## Environment Description and Motivation
