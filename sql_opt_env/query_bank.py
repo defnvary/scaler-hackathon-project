@@ -67,6 +67,11 @@ class QueryBank:
     def __init__(self):
         self.schema = SCHEMA_DDL
         self.queries = QUERIES
+        # Build a flat lookup by task name for task_id-based resets
+        self._by_name = {}
+        for diff, tasks in self.queries.items():
+            for task in tasks:
+                self._by_name[task["name"]] = (task, diff)
 
     def sample(self, difficulty=None):
         if not difficulty or difficulty not in self.queries:
@@ -75,6 +80,13 @@ class QueryBank:
 
         task = random.choice(self.queries[difficulty])
         return task["sql"].strip(), self.schema, difficulty
+
+    def sample_by_task_id(self, task_id):
+        """Return (sql, schema, difficulty, task_name) for a specific task_id."""
+        if task_id in self._by_name:
+            task, diff = self._by_name[task_id]
+            return task["sql"].strip(), self.schema, diff, task["name"]
+        return None
 
 
 query_bank = QueryBank()

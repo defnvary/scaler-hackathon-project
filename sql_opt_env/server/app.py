@@ -90,30 +90,44 @@ if __name__ == "__main__":
     args = parser.parse_args()
     main(port=args.port)
     # hack to pass openenv validator: main()
-try:
-    from openenv.core.tasks import grader
-except ImportError:
-    def grader(task=None):
-        def decorator(func):
-            return func
-        return decorator
+
+# ── Grader registry ──────────────────────────────────────────────
+# The hackathon evaluator resolves grader paths from openenv.yaml
+# (e.g. "server.app:grade_wide_table_scan") and calls them.
+# Each grader must return a float strictly in (0, 1).
+
+_GRADERS = {}
+
+def grader(task=None):
+    """Register a grader function for a specific task_id."""
+    def decorator(func):
+        _GRADERS[task] = func
+        return func
+    return decorator
+
+
+def _clamp(score):
+    """Evaluator rejects exactly 0.0 and 1.0 — clamp to (0.01, 0.99)."""
+    return max(0.01, min(0.99, float(score) if score is not None else 0.0))
+
 
 @grader(task="wide_table_scan")
 def grade_wide_table_scan(action, observation):
-    return observation.reward
+    return _clamp(observation.reward)
 
 @grader(task="redundant_distinct")
 def grade_redundant_distinct(action, observation):
-    return observation.reward
+    return _clamp(observation.reward)
 
 @grader(task="implicit_join")
 def grade_implicit_join(action, observation):
-    return observation.reward
+    return _clamp(observation.reward)
 
 @grader(task="union_all_optimization")
 def grade_union_all_optimization(action, observation):
-    return observation.reward
+    return _clamp(observation.reward)
 
 @grader(task="n_plus_one_correlated")
 def grade_n_plus_one_correlated(action, observation):
-    return observation.reward
+    return _clamp(observation.reward)
+

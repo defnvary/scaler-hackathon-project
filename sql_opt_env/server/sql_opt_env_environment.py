@@ -1,4 +1,5 @@
 import json
+from typing import Optional, Any
 from uuid import uuid4
 import sqlglot
 
@@ -13,6 +14,11 @@ except (ImportError, ModuleNotFoundError):
 
 from sql_opt_env.db import setup_db, execute_query_metrics
 from sql_opt_env.query_bank import query_bank
+
+
+def _clamp_score(score: float) -> float:
+    """Clamp score to strictly (0, 1) exclusive — evaluator rejects 0.0 and 1.0."""
+    return max(0.01, min(0.99, score))
 
 
 class SqlOptEnvironment(Environment):
@@ -38,24 +44,34 @@ class SqlOptEnvironment(Environment):
             author="Antigravity",
         )
 
-    def reset(self) -> SqlOptObservation:
-        self._state = State(episode_id=str(uuid4()), step_count=0)
+    def reset(
+        self,
+        seed: Optional[int] = None,
+        episode_id: Optional[str] = None,
+        **kwargs: Any,
+    ) -> SqlOptObservation:
+        self._state = State(
+            episode_id=episode_id or str(uuid4()), step_count=0
+        )
 
-        # Sample a slow query, tracking difficulty
-        sql, schema, difficulty = query_bank.sample()
-        self.current_original_sql = sql
-        self.current_schema_ddl = schema
-        self.current_difficulty = difficulty
-
-        # Determine task name from query bank
-        self.current_task_name = "optimize_sql"
-        for diff in query_bank.queries:
-            for task in query_bank.queries[diff]:
-                if task["sql"].strip() == sql.strip():
-                    self.current_task_name = task.get("name", "optimize_sql")
+        # Support task_id-based reset so the evaluator can test each task
+        task_id = kwargs.get("task_id") or kwargs.get("task")
+        if task_id:
+            result = query_bank.sample_by_task_id(task_id)
+            if result:
+                sql, schema, difficulty, task_name = result
+                self.current_original_sql = sql
+                self.current_schema_ddl = schema
+                self.current_difficulty = difficulty
+                self.current_task_name = task_name
+            else:
+                # Fallback to random if task_id not found
+                self._sample_random()
+        else:
+            self._sample_random()
 
         # Get baseline metrics
-        ms, plan, res_hash, err = execute_query_metrics(sql)
+        ms, plan, res_hash, err = execute_query_metrics(self.current_original_sql)
         self.baseline_ms = ms
         self.baseline_hash = res_hash
         self.baseline_plan = json.dumps(plan) if plan else "{}"
@@ -72,7 +88,21 @@ class SqlOptEnvironment(Environment):
             difficulty=self.current_difficulty,
         )
 
-    def step(self, action: SqlOptAction) -> SqlOptObservation:
+    def _sample_random(self):
+        """Sample a random task from the query bank."""
+        sql, schema, difficulty = query_bank.sample()
+        self.current_original_sql = sql
+        self.current_schema_ddl = schema
+        self.current_difficulty = difficulty
+
+        # Determine task name from query bank
+        self.current_task_name = "optimize_sql"
+        for diff in query_bank.queries:
+            for task in query_bank.queries[diff]:
+                if task["sql"].strip() == sql.strip():
+                    self.current_task_name = task.get("name", "optimize_sql")
+
+    def step(self, action: SqlOptAction, **kwargs: Any) -> SqlOptObservation:
         self._state.step_count += 1
         done = self._state.step_count >= self.max_steps
         rewritten_sql = action.rewritten_sql
@@ -88,7 +118,7 @@ class SqlOptEnvironment(Environment):
             reward += 0.2
         except Exception as e:
             return self._build_obs(
-                0.0, '{"error": "syntax_error"}', done=True, reward=0.0
+                0.0, '{"error": "syntax_error"}', done=True, reward=_clamp_score(0.0)
             )
 
         # Execute rewritten query
@@ -98,7 +128,7 @@ class SqlOptEnvironment(Environment):
 
         if err:
             return self._build_obs(
-                0.0, json.dumps({"error": str(err)}), done=True, reward=reward
+                0.0, json.dumps({"error": str(err)}), done=True, reward=_clamp_score(reward)
             )
 
         # 2. Execution success (0.2 max)
@@ -114,7 +144,7 @@ class SqlOptEnvironment(Environment):
                 if reduction > 0:
                     reward += min(0.3, reduction * 0.5)  # Scale up to 0.3
 
-        return self._build_obs(new_ms, new_plan, done, round(reward, 2))
+        return self._build_obs(new_ms, new_plan, done, _clamp_score(round(reward, 2)))
 
     def _build_obs(self, ms, plan, done, reward):
         return SqlOptObservation(
@@ -132,3 +162,4 @@ class SqlOptEnvironment(Environment):
     @property
     def state(self) -> State:
         return self._state
+
