@@ -56,21 +56,21 @@ async def list_tasks():
                 "name": "Implicit Join Conversion",
                 "difficulty": "medium",
                 "description": "Convert legacy implicit cross-join syntax to explicit INNER JOIN.",
-                "grader": "server.app:dummy_grader",
+                "grader": "server.app:grade_implicit_join",
             },
             {
                 "id": "union_all_optimization",
                 "name": "Union to Union All",
                 "difficulty": "medium",
                 "description": "Optimize a UNION query to UNION ALL where results are guaranteed to be disjoint.",
-                "grader": "server.app:dummy_grader",
+                "grader": "server.app:grade_union_all_optimization",
             },
             {
                 "id": "n_plus_one_correlated",
                 "name": "N+1 Subquery Flattening",
                 "difficulty": "hard",
                 "description": "Flatten a correlated subquery in the SELECT clause into a JOIN + GROUP BY.",
-                "grader": "server.app:dummy_grader",
+                "grader": "server.app:grade_n_plus_one_correlated",
             },
         ]
     }
